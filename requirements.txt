@@ -1,0 +1,8 @@
+opencv-python
+numpy
+gpiozero
+RPi.GPIO
+
+imutils        # easier OpenCV operations
+picamera2      # for Raspberry Pi camera (Bullseye / Bookworm OS)
+playsound      # for speaker alerts
