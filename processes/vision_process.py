@@ -6,16 +6,28 @@ import queue
 import time
 from multiprocessing import Event, Queue
 
-import cv2
-import numpy as np
-
 from config import settings
 from utils.logger import get_logger, process_started_message
+from utils.status import publish_status
 
 LOGGER = get_logger(__name__)
 
+try:
+    import cv2  # type: ignore
+    import numpy as np
 
-def _analyze_frame(frame: np.ndarray) -> str:
+    HAS_VISION_DEPS = True
+except Exception:  # pragma: no cover
+    cv2 = None
+    np = None
+    HAS_VISION_DEPS = False
+
+
+def _analyze_frame(frame) -> str:
+    if not HAS_VISION_DEPS:
+        return "CLEAR"
+    assert cv2 is not None
+    assert np is not None
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     blur = cv2.GaussianBlur(gray, (5, 5), 0)
     edges = cv2.Canny(blur, 80, 160)
@@ -35,8 +47,10 @@ def _analyze_frame(frame: np.ndarray) -> str:
     return "CLEAR"
 
 
-def vision_process(frame_queue: Queue, vision_result_queue: Queue, stop_event: Event) -> None:
+def vision_process(frame_queue: Queue, vision_result_queue: Queue, status_queue: Queue, stop_event: Event) -> None:
     LOGGER.info(process_started_message())
+    if not HAS_VISION_DEPS:
+        LOGGER.warning("OpenCV/NumPy unavailable; vision process using CLEAR fallback.")
     try:
         while not stop_event.is_set():
             try:
@@ -46,6 +60,7 @@ def vision_process(frame_queue: Queue, vision_result_queue: Queue, stop_event: E
                 continue
 
             result = _analyze_frame(frame)
+            publish_status(status_queue, source="vision", vision=result)
             try:
                 vision_result_queue.put_nowait(result)
             except queue.Full:

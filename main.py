@@ -12,6 +12,7 @@ from processes.decision_process import decision_process
 from processes.motor_process import motor_process
 from processes.ultrasonic_process import ultrasonic_process
 from processes.vision_process import vision_process
+from ui.dashboard import RobotDashboard
 from utils.logger import configure_logging, get_logger
 
 
@@ -20,20 +21,24 @@ def _spawn_processes(ipc):
         mp.Process(
             name="UltrasonicProcess",
             target=ultrasonic_process,
-            args=(ipc.distance_queue, ipc.audio_queue, ipc.stop_event),
+            args=(ipc.distance_queue, ipc.audio_queue, ipc.status_queue, ipc.stop_event),
         ),
-        mp.Process(name="CameraProcess", target=camera_process, args=(ipc.frame_queue, ipc.stop_event)),
+        mp.Process(
+            name="CameraProcess",
+            target=camera_process,
+            args=(ipc.frame_queue, ipc.preview_queue, ipc.stop_event),
+        ),
         mp.Process(
             name="VisionProcess",
             target=vision_process,
-            args=(ipc.frame_queue, ipc.vision_result_queue, ipc.stop_event),
+            args=(ipc.frame_queue, ipc.vision_result_queue, ipc.status_queue, ipc.stop_event),
         ),
         mp.Process(
             name="DecisionProcess",
             target=decision_process,
-            args=(ipc.vision_result_queue, ipc.distance_queue, ipc.decision_queue, ipc.stop_event),
+            args=(ipc.vision_result_queue, ipc.distance_queue, ipc.decision_queue, ipc.status_queue, ipc.stop_event),
         ),
-        mp.Process(name="MotorProcess", target=motor_process, args=(ipc.decision_queue, ipc.stop_event)),
+        mp.Process(name="MotorProcess", target=motor_process, args=(ipc.decision_queue, ipc.status_queue, ipc.stop_event)),
         mp.Process(name="AudioProcess", target=audio_process, args=(ipc.audio_queue, ipc.stop_event)),
     ]
 
@@ -51,6 +56,11 @@ def main() -> None:
         time.sleep(0.05)
 
     try:
+        process_names = [proc.name for proc in processes]
+        dashboard = RobotDashboard(ipc.status_queue, ipc.preview_queue, ipc.stop_event, process_names)
+        dashboard.run()
+    except Exception as exc:
+        logger.warning("GUI unavailable (%s). Falling back to headless mode.", exc)
         while True:
             if ipc.stop_event.is_set():
                 logger.warning("Stop event received from child process.")

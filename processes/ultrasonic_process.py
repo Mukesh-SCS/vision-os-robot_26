@@ -9,11 +9,12 @@ from multiprocessing import Event, Queue
 from config import settings
 from hardware.ultrasonic import UltrasonicSensor
 from utils.logger import get_logger, process_started_message
+from utils.status import publish_status
 
 LOGGER = get_logger(__name__)
 
 
-def ultrasonic_process(distance_queue: Queue, audio_queue: Queue, stop_event: Event) -> None:
+def ultrasonic_process(distance_queue: Queue, audio_queue: Queue, status_queue: Queue, stop_event: Event) -> None:
     LOGGER.info(process_started_message())
     sensor = UltrasonicSensor()
 
@@ -40,6 +41,13 @@ def ultrasonic_process(distance_queue: Queue, audio_queue: Queue, stop_event: Ev
                     audio_queue.put_nowait("BEEP")
                 except queue.Full:
                     pass
+
+            publish_status(
+                status_queue,
+                source="ultrasonic",
+                distance_cm=distance,
+                danger=danger,
+            )
 
             LOGGER.debug("distance=%s cm danger=%s", distance, danger)
             time.sleep(settings.ULTRASONIC_POLL_INTERVAL_SEC)

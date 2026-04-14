@@ -8,6 +8,7 @@ from multiprocessing import Event, Queue
 
 from config import settings
 from utils.logger import get_logger, process_started_message
+from utils.status import publish_status
 
 LOGGER = get_logger(__name__)
 
@@ -30,6 +31,7 @@ def decision_process(
     vision_result_queue: Queue,
     distance_queue: Queue,
     decision_queue: Queue,
+    status_queue: Queue,
     stop_event: Event,
 ) -> None:
     LOGGER.info(process_started_message())
@@ -49,6 +51,13 @@ def decision_process(
                 pass
 
             command = _derive_motion_command(latest_vision, latest_distance)
+            publish_status(
+                status_queue,
+                source="decision",
+                command=command,
+                vision=latest_vision,
+                distance_cm=latest_distance.get("distance_cm"),
+            )
             try:
                 decision_queue.put_nowait(command)
             except queue.Full:

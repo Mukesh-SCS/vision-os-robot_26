@@ -54,7 +54,7 @@ Data flow:
 - `numpy`
 - `gpiozero`
 - `RPi.GPIO`
-- optional: `picamera2`, `playsound`
+- optional on Pi: `picamera2` (install on the Raspberry Pi, not required on Windows)
 
 Install:
 ```bash

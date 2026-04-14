@@ -9,11 +9,12 @@ from multiprocessing import Event, Queue
 from config import settings
 from hardware.motor_driver import MotorDriver
 from utils.logger import get_logger, process_started_message
+from utils.status import publish_status
 
 LOGGER = get_logger(__name__)
 
 
-def motor_process(decision_queue: Queue, stop_event: Event) -> None:
+def motor_process(decision_queue: Queue, status_queue: Queue, stop_event: Event) -> None:
     LOGGER.info(process_started_message())
     driver = MotorDriver()
     last_command = None
@@ -40,9 +41,11 @@ def motor_process(decision_queue: Queue, stop_event: Event) -> None:
                 command_map[command]()
                 last_command = command
                 LOGGER.info("motor command executed: %s", command)
+                publish_status(status_queue, source="motor", motor_state=command)
             elif idle_ticks > 5 and last_command != "STOP":
                 driver.stop()
                 last_command = "STOP"
+                publish_status(status_queue, source="motor", motor_state="STOP")
 
             time.sleep(settings.MOTOR_POLL_INTERVAL_SEC)
     except Exception as exc:
