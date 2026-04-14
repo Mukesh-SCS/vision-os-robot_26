@@ -1,147 +1,168 @@
 # Vision-Based Autonomous Robot with OS-Level Multi-Process Scheduling
 
-## 📌 Overview
-This project implements an autonomous mobile robot using Raspberry Pi, designed to demonstrate core Operating System (OS) concepts such as process management, CPU scheduling, inter-process communication (IPC), and real-time execution.
+## Overview
+This project builds a Raspberry Pi autonomous robot that demonstrates Operating System concepts through a real multi-process control pipeline.
 
-The robot uses a combination of computer vision and ultrasonic sensing to navigate its environment safely and efficiently.
+The robot combines:
+- camera-based scene analysis
+- ultrasonic obstacle safety override
+- motor control through L298N
+- optional audio alert signaling
 
----
-
-## 🚀 Features
-- Real-time video processing using OpenCV
-- Ultrasonic sensor-based obstacle detection (safety override)
-- Multi-process architecture using Python multiprocessing
-- Priority-based task scheduling
-- Inter-process communication (IPC) using queues
-- Autonomous navigation (forward, turn, stop)
-- Optional audio alerts
-
----
-
-## 🧠 OS Concepts Demonstrated
-- Process Management (parallel execution)
-- CPU Scheduling (priority-based)
-- Inter-Process Communication (queues/shared memory)
-- Synchronization (safe process coordination)
-- Memory Management (image frame handling)
-- Real-Time Constraints (low latency response)
+Core OS goals shown in code:
+- concurrent process execution
+- inter-process communication (IPC) via queues
+- clear task separation between processes
+- safety-first priority behavior (sensor override)
 
 ---
 
-## 🧰 Hardware Requirements
-- Raspberry Pi (with Raspberry Pi OS)
-- Camera Module
-- Ultrasonic Sensor (HC-SR04)
-- L298N Motor Driver
-- 4WD Robot Chassis with Motors
-- Battery Pack
-- Speaker (optional)
-- Jumper Wires
+## Implemented Architecture
+The runtime starts independent worker processes:
+- `UltrasonicProcess` (highest conceptual priority)
+- `CameraProcess`
+- `VisionProcess`
+- `DecisionProcess`
+- `MotorProcess`
+- `AudioProcess` (optional alert)
+
+Data flow:
+1. camera captures frames into `frame_queue`
+2. vision reads frames and publishes scene states
+3. ultrasonic publishes distance + danger flags
+4. decision combines vision + distance into motion commands
+5. motor executes movement commands
+6. audio receives beep triggers on danger
 
 ---
 
-## 💻 Software Requirements
-- Python 3.x
-- OpenCV
-- RPi.GPIO / gpiozero
-- multiprocessing (built-in)
+## Hardware Requirements
+- Raspberry Pi 4/5 with Raspberry Pi OS
+- Camera module or USB camera
+- HC-SR04 ultrasonic sensor
+- L298N motor driver
+- 4WD chassis with motors
+- battery pack for motors
+- jumper wires and common ground
+- buzzer/speaker (optional)
 
-Install dependencies:
-```bash
-pip install opencv-python gpiozero
-```
+---
 
-## Project Structure
-```bash
-robot-os-project/
-│
-├── README.md
-├── requirements.txt
-├── main.py                  # Entry point
-│
-├── config/
-│   └── settings.py          # Pin configs, thresholds
-│
-├── processes/
-│   ├── camera_process.py    # Capture frames
-│   ├── vision_process.py    # Image processing
-│   ├── ultrasonic_process.py # Distance sensing
-│   ├── decision_process.py  # Decision logic
-│   ├── motor_process.py     # Motor control
-│   └── audio_process.py     # Alerts 
-│
-├── ipc/
-│   └── queues.py            # Shared queues setup
-│
-├── hardware/
-│   ├── motor_driver.py      # L298N control
-│   ├── ultrasonic.py        # Sensor logic
-│   └── camera.py            # Camera interface
-│
-├── utils/
-│   ├── logger.py            # Logging
-│   └── timing.py            # Performance metrics
-│
-├── tests/
-│   ├── test_motor.py
-│   ├── test_ultrasonic.py
-│   └── test_camera.py
-│
-└── docs/
-    ├── architecture.png
-    └── report.pdf
-```
+## Software Requirements
+- Python 3.10+ recommended
+- `opencv-python`
+- `numpy`
+- `gpiozero`
+- `RPi.GPIO`
+- optional: `picamera2`, `playsound`
 
-## ⚙️ How to Run
-
-Clone the repository:
-```bash
-git clone <your-repo-link>
-cd robot-os-project
-```
-
-Install dependencies:
+Install:
 ```bash
 pip install -r requirements.txt
 ```
 
-Run the system:
+---
+
+## Project Structure
+```bash
+vision-os-robot_26/
+├── main.py
+├── requirements.txt
+├── README.md
+├── INSTRUCTION.md
+│
+├── config/
+│   └── settings.py
+├── hardware/
+│   ├── camera.py
+│   ├── motor_driver.py
+│   └── ultrasonic.py
+├── ipc/
+│   └── queues.py
+├── processes/
+│   ├── audio_process.py
+│   ├── camera_process.py
+│   ├── decision_process.py
+│   ├── motor_process.py
+│   ├── ultrasonic_process.py
+│   └── vision_process.py
+├── tests/
+│   ├── test_camera.py
+│   ├── test_motor.py
+│   └── test_ultrasonic.py
+└── utils/
+    ├── logger.py
+    └── timing.py
+```
+
+---
+
+## GPIO and Runtime Configuration
+All pin numbers and thresholds are centralized in:
+- `config/settings.py`
+
+Update this file before running on real hardware:
+- motor pins (`IN1`, `IN2`, `IN3`, `IN4`, `ENA`, `ENB`)
+- ultrasonic pins (`TRIG`, `ECHO`)
+- camera index and frame size
+- obstacle threshold distance
+- process timing intervals
+
+---
+
+## How to Run
+From project root:
 ```bash
 python main.py
 ```
 
-## 🔄 System Workflow
-
-- Camera captures frames
-- Vision process detects obstacles
-- Ultrasonic sensor checks distance
-- Decision process determines action
-- Motor process executes movement
-
-## 📊 Performance Metrics
-
-- Response Time (ms)
-- CPU Usage (%)
-- Frame Processing Time
-- Obstacle Detection Accuracy
-
-## ⚠️ Notes
-
-- Ensure correct GPIO pin configuration
-- Run with sudo if required:
+If your Pi setup needs elevated GPIO/camera permissions:
 ```bash
 sudo python main.py
 ```
-- Test each module individually before full integration
 
-## 📌 Future Improvements
+Shutdown:
+- Press `Ctrl + C` in terminal.
+- `main.py` sets shared stop event and performs clean process shutdown.
 
-- Add deep learning-based object detection
-- Web dashboard for monitoring
-- Advanced scheduling algorithms
-- ROS integration
+---
 
-## 👨‍💻 Authors
+## Module Test Scripts (Recommended First)
+Test modules individually before full integration:
 
-Mukesh Mani Tripathi
-Leon Dhoska
+Motor test:
+```bash
+python tests/test_motor.py
+```
+
+Ultrasonic test:
+```bash
+python tests/test_ultrasonic.py
+```
+
+Camera test:
+```bash
+python tests/test_camera.py
+```
+
+---
+
+## Safety Notes
+- Keep wheels lifted during first motor tests.
+- Do not power motors directly from Raspberry Pi 5V.
+- Use a shared common ground between Pi and L298N.
+- Protect Pi from 5V `ECHO` using a voltage divider/level shifter.
+- Always stop power before rewiring.
+
+---
+
+## Development Notes
+- The hardware modules include fail-safe behavior and exception handling to reduce crash risk.
+- Process queues are bounded to prevent latency and memory growth.
+- On non-Pi systems, GPIO-dependent modules can run in dry-run mode for development.
+
+---
+
+## Authors
+- Mukesh Mani Tripathi
+- Leon Dhoska

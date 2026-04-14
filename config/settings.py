@@ -1,0 +1,47 @@
+"""Centralized project configuration values.
+
+Edit this file to match your wiring and runtime preferences.
+"""
+
+from __future__ import annotations
+
+# Motor driver (L298N) GPIO pins
+MOTOR_IN1 = 17
+MOTOR_IN2 = 27
+MOTOR_IN3 = 22
+MOTOR_IN4 = 23
+MOTOR_ENA = 18
+MOTOR_ENB = 24
+
+# Optional PWM values (0-100)
+MOTOR_PWM_FREQUENCY_HZ = 1000
+MOTOR_DEFAULT_SPEED = 70
+
+# Ultrasonic sensor pins (HC-SR04)
+ULTRASONIC_TRIG_PIN = 5
+ULTRASONIC_ECHO_PIN = 6
+ULTRASONIC_TIMEOUT_SEC = 0.04
+OBSTACLE_THRESHOLD_CM = 20.0
+ULTRASONIC_POLL_INTERVAL_SEC = 0.08
+
+# Camera settings
+CAMERA_INDEX = 0
+FRAME_WIDTH = 640
+FRAME_HEIGHT = 480
+FRAME_QUEUE_SIZE = 2
+CAMERA_POLL_INTERVAL_SEC = 0.03
+
+# Process timing / queue controls
+VISION_POLL_INTERVAL_SEC = 0.03
+DECISION_POLL_INTERVAL_SEC = 0.02
+MOTOR_POLL_INTERVAL_SEC = 0.02
+AUDIO_POLL_INTERVAL_SEC = 0.1
+QUEUE_GET_TIMEOUT_SEC = 0.1
+
+# Audio
+AUDIO_PIN = 25
+BEEP_DURATION_SEC = 0.2
+BEEP_COOLDOWN_SEC = 1.0
+
+# Debug/testing behavior
+ENABLE_DEBUG_LOGS = True
