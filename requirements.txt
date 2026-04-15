@@ -1,8 +1,14 @@
 opencv-python
 numpy
+Pillow         # GUI live camera preview (ImageTk)
 gpiozero
 RPi.GPIO
 
 imutils        # easier OpenCV operations
-picamera2      # for Raspberry Pi camera (Bullseye / Bookworm OS)
-playsound      # for speaker alerts
+picamera2      # Raspberry Pi only; skip on Windows (pip install on the Pi)
+
+
+# tkinter GUI note:
+# On Raspberry Pi/Linux, install system package if missing:
+#sudo apt update
+#sudo apt install python3-tk

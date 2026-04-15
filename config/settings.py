@@ -28,6 +28,9 @@ ULTRASONIC_POLL_INTERVAL_SEC = 0.08
 CAMERA_INDEX = 0
 FRAME_WIDTH = 640
 FRAME_HEIGHT = 480
+# GUI live preview size (camera_process sends this resolution to the dashboard)
+PREVIEW_WIDTH = 640
+PREVIEW_HEIGHT = 480
 FRAME_QUEUE_SIZE = 2
 CAMERA_POLL_INTERVAL_SEC = 0.03
 
