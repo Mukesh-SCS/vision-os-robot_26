@@ -1,14 +1,7 @@
-opencv-python
 numpy
-Pillow         # GUI live camera preview (ImageTk)
-gpiozero
-RPi.GPIO
-
-imutils        # easier OpenCV operations
-picamera2      # Raspberry Pi only; skip on Windows (pip install on the Pi)
+Pillow
+imutils
 
 
-# tkinter GUI note:
-# On Raspberry Pi/Linux, install system package if missing:
 #sudo apt update
-#sudo apt install python3-tk
+#sudo apt install -y python3-opencv python3-picamera2 python3-libcamera python3-gpiozero python3-rpi.gpio python3-tk libcap-dev

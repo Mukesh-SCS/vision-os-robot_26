@@ -12,7 +12,6 @@ LOGGER = get_logger(__name__)
 
 try:
     import RPi.GPIO as GPIO  # type: ignore
-
     HAS_GPIO = True
 except Exception:  # pragma: no cover - expected on non-Pi systems
     GPIO = None
@@ -30,7 +29,7 @@ class MotorPins:
 
 
 class MotorDriver:
-    """Motor actions only; no decision logic."""
+    """Motor control wrapper for L298N."""
 
     def __init__(self, pins: Optional[MotorPins] = None) -> None:
         self.pins = pins or MotorPins()
@@ -41,6 +40,7 @@ class MotorDriver:
     def initialize(self) -> None:
         if self._initialized:
             return
+
         if not HAS_GPIO:
             LOGGER.warning("RPi.GPIO unavailable; running motor driver in dry-run mode.")
             self._initialized = True
@@ -48,18 +48,34 @@ class MotorDriver:
 
         GPIO.setmode(GPIO.BCM)
         GPIO.setwarnings(False)
-        for pin in (self.pins.in1, self.pins.in2, self.pins.in3, self.pins.in4, self.pins.ena, self.pins.enb):
+
+        for pin in (
+            self.pins.in1,
+            self.pins.in2,
+            self.pins.in3,
+            self.pins.in4,
+            self.pins.ena,
+            self.pins.enb,
+        ):
             GPIO.setup(pin, GPIO.OUT)
+
+        GPIO.output(self.pins.in1, GPIO.LOW)
+        GPIO.output(self.pins.in2, GPIO.LOW)
+        GPIO.output(self.pins.in3, GPIO.LOW)
+        GPIO.output(self.pins.in4, GPIO.LOW)
 
         self._pwm_a = GPIO.PWM(self.pins.ena, settings.MOTOR_PWM_FREQUENCY_HZ)
         self._pwm_b = GPIO.PWM(self.pins.enb, settings.MOTOR_PWM_FREQUENCY_HZ)
+
         self._pwm_a.start(settings.MOTOR_DEFAULT_SPEED)
         self._pwm_b.start(settings.MOTOR_DEFAULT_SPEED)
+
         self._initialized = True
         LOGGER.info("MotorDriver initialized.")
 
     def _set(self, in1: bool, in2: bool, in3: bool, in4: bool) -> None:
         self.initialize()
+
         if not HAS_GPIO:
             LOGGER.info("DRY-RUN motor pins set: %s", (in1, in2, in3, in4))
             return
@@ -68,6 +84,20 @@ class MotorDriver:
         GPIO.output(self.pins.in2, GPIO.HIGH if in2 else GPIO.LOW)
         GPIO.output(self.pins.in3, GPIO.HIGH if in3 else GPIO.LOW)
         GPIO.output(self.pins.in4, GPIO.HIGH if in4 else GPIO.LOW)
+
+    def set_speed(self, duty_cycle: float) -> None:
+        self.initialize()
+
+        if not HAS_GPIO:
+            LOGGER.info("DRY-RUN speed set to %.1f%%", duty_cycle)
+            return
+
+        duty = max(0.0, min(100.0, float(duty_cycle)))
+
+        if self._pwm_a is not None:
+            self._pwm_a.ChangeDutyCycle(duty)
+        if self._pwm_b is not None:
+            self._pwm_b.ChangeDutyCycle(duty)
 
     def forward(self) -> None:
         self._set(True, False, True, False)
@@ -92,13 +122,41 @@ class MotorDriver:
     def cleanup(self) -> None:
         if not self._initialized:
             return
+
         if HAS_GPIO:
             try:
+                GPIO.output(self.pins.in1, GPIO.LOW)
+                GPIO.output(self.pins.in2, GPIO.LOW)
+                GPIO.output(self.pins.in3, GPIO.LOW)
+                GPIO.output(self.pins.in4, GPIO.LOW)
+
                 if self._pwm_a is not None:
-                    self._pwm_a.stop()
+                    try:
+                        self._pwm_a.stop()
+                    except Exception as exc:
+                        LOGGER.warning("PWM A stop warning: %s", exc)
+                    finally:
+                        self._pwm_a = None
+
                 if self._pwm_b is not None:
-                    self._pwm_b.stop()
-                GPIO.cleanup()
-            except Exception as exc:  # pragma: no cover
+                    try:
+                        self._pwm_b.stop()
+                    except Exception as exc:
+                        LOGGER.warning("PWM B stop warning: %s", exc)
+                    finally:
+                        self._pwm_b = None
+
+                GPIO.cleanup(
+                    (
+                        self.pins.in1,
+                        self.pins.in2,
+                        self.pins.in3,
+                        self.pins.in4,
+                        self.pins.ena,
+                        self.pins.enb,
+                    )
+                )
+            except Exception as exc:
                 LOGGER.warning("Motor cleanup warning: %s", exc)
+
         self._initialized = False
