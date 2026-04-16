@@ -48,6 +48,16 @@ class Camera:
                 return True
             except Exception as exc:
                 LOGGER.warning("Picamera2 init failed, falling back to OpenCV: %s", exc)
+                picam2 = self.picam2
+                if picam2 is not None:
+                    try:
+                        picam2.stop()
+                    except Exception:
+                        pass
+                    try:
+                        picam2.close()
+                    except Exception:
+                        pass
                 self.picam2 = None
 
         if HAS_CV2:
