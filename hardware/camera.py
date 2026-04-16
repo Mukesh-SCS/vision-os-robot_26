@@ -1,4 +1,4 @@
-"""Camera capture wrapper with Raspberry Pi Picamera2 fallback."""
+"""Camera capture wrapper preferring Raspberry Pi Picamera2 with OpenCV fallback."""
 
 from __future__ import annotations
 
