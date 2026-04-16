@@ -1,4 +1,4 @@
-"""Simple PWM speaker output on GPIO 25."""
+"""Simple PWM speaker output on a configurable GPIO pin (defaults to ``settings.AUDIO_PIN``)."""
 
 from __future__ import annotations
 
