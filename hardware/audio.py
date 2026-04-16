@@ -45,10 +45,16 @@ class Audio:
             LOGGER.info("DRY-RUN tone: freq=%s duration=%s", frequency, duration)
             return
 
+        try:
+            safe_duty = float(duty)
+        except (TypeError, ValueError):
+            safe_duty = 50.0
+        safe_duty = max(0.0, min(100.0, safe_duty))
+
         pwm = None
         try:
             pwm = GPIO.PWM(self.pin, frequency)
-            pwm.start(duty)
+            pwm.start(safe_duty)
             time.sleep(duration)
         finally:
             if pwm is not None:
