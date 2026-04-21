@@ -31,7 +31,7 @@ def _spawn_processes(ipc):
         mp.Process(
             name="VisionProcess",
             target=vision_process,
-            args=(ipc.frame_queue, ipc.vision_result_queue, ipc.status_queue, ipc.stop_event),
+            args=(ipc.frame_queue, ipc.vision_result_queue, ipc.status_queue, ipc.preview_queue, ipc.stop_event),
         ),
         mp.Process(
             name="DecisionProcess",

@@ -18,7 +18,8 @@ def motor_process(decision_queue: Queue, status_queue: Queue, stop_event: Event)
     LOGGER.info(process_started_message())
     driver = MotorDriver()
     last_command = None
-    idle_ticks = 0
+    idle_since = None
+    last_change_at = 0.0
 
     command_map = {
         "FORWARD": driver.forward,
@@ -32,19 +33,30 @@ def motor_process(decision_queue: Queue, status_queue: Queue, stop_event: Event)
         while not stop_event.is_set():
             try:
                 command = decision_queue.get(timeout=settings.QUEUE_GET_TIMEOUT_SEC)
-                idle_ticks = 0
+                idle_since = None
             except queue.Empty:
                 command = None
-                idle_ticks += 1
+                if idle_since is None:
+                    idle_since = time.monotonic()
 
+            now = time.monotonic()
             if command and command in command_map and command != last_command:
-                command_map[command]()
-                last_command = command
-                LOGGER.info("motor command executed: %s", command)
-                publish_status(status_queue, source="motor", motor_state=command)
-            elif idle_ticks > 5 and last_command != "STOP":
+                hold_elapsed = now - last_change_at
+                if hold_elapsed >= settings.MOTOR_COMMAND_HOLD_SEC:
+                    command_map[command]()
+                    last_command = command
+                    last_change_at = now
+                    LOGGER.info("motor command executed: %s", command)
+                    publish_status(status_queue, source="motor", motor_state=command)
+
+            if (
+                idle_since is not None
+                and last_command != "STOP"
+                and (now - idle_since) >= settings.MOTOR_IDLE_STOP_SEC
+            ):
                 driver.stop()
                 last_command = "STOP"
+                last_change_at = now
                 publish_status(status_queue, source="motor", motor_state="STOP")
 
             time.sleep(settings.MOTOR_POLL_INTERVAL_SEC)

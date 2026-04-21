@@ -37,6 +37,7 @@ class RobotDashboard:
             "distance_cm": "N/A",
             "danger": "N/A",
             "vision": "N/A",
+            "box_count": 0,
             "command": "N/A",
             "motor_state": "N/A",
         }
@@ -105,10 +106,18 @@ class RobotDashboard:
         self.distance_var = tk.StringVar(value="Distance (cm): N/A")
         self.danger_var = tk.StringVar(value="Danger: N/A")
         self.vision_var = tk.StringVar(value="Vision: N/A")
+        self.box_count_var = tk.StringVar(value="Boxes: 0")
         self.command_var = tk.StringVar(value="Decision Command: N/A")
         self.motor_var = tk.StringVar(value="Motor State: N/A")
 
-        for var in (self.distance_var, self.danger_var, self.vision_var, self.command_var, self.motor_var):
+        for var in (
+            self.distance_var,
+            self.danger_var,
+            self.vision_var,
+            self.box_count_var,
+            self.command_var,
+            self.motor_var,
+        ):
             ttk.Label(right, textvariable=var).pack(anchor="w")
 
         ttk.Separator(right, orient="horizontal").pack(fill=tk.X, pady=10)
@@ -188,6 +197,7 @@ class RobotDashboard:
         self.distance_var.set(f"Distance (cm): {self.last_status['distance_cm']}")
         self.danger_var.set(f"Danger: {self.last_status['danger']}")
         self.vision_var.set(f"Vision: {self.last_status['vision']}")
+        self.box_count_var.set(f"Boxes: {self.last_status['box_count']}")
         self.command_var.set(f"Decision Command: {self.last_status['command']}")
         self.motor_var.set(f"Motor State: {self.last_status['motor_state']}")
 

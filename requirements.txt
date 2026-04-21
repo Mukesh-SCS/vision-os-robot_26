@@ -1,6 +1,7 @@
 numpy
 Pillow
 imutils
+ultralytics
 
 
 #sudo apt update

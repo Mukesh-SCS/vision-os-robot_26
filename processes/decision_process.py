@@ -35,13 +35,20 @@ def decision_process(
     stop_event: Event,
 ) -> None:
     LOGGER.info(process_started_message())
-    latest_vision = "CLEAR"
+    latest_vision = {"state": "CLEAR", "box_count": 0}
     latest_distance = {"distance_cm": None, "danger": False}
+    candidate_command = "FORWARD"
+    candidate_since = time.monotonic()
+    committed_command = None
 
     try:
         while not stop_event.is_set():
             try:
-                latest_vision = vision_result_queue.get_nowait()
+                incoming = vision_result_queue.get_nowait()
+                if isinstance(incoming, dict):
+                    latest_vision = incoming
+                else:
+                    latest_vision = {"state": str(incoming), "box_count": 0}
             except queue.Empty:
                 pass
 
@@ -50,16 +57,30 @@ def decision_process(
             except queue.Empty:
                 pass
 
-            command = _derive_motion_command(latest_vision, latest_distance)
+            vision_state = str(latest_vision.get("state", "CLEAR"))
+            command = _derive_motion_command(vision_state, latest_distance)
+            now = time.monotonic()
+            if command != candidate_command:
+                candidate_command = command
+                candidate_since = now
+
+            if (
+                committed_command is None
+                or candidate_command == committed_command
+                or (now - candidate_since) >= settings.DECISION_COMMAND_DEBOUNCE_SEC
+            ):
+                committed_command = candidate_command
+
             publish_status(
                 status_queue,
                 source="decision",
-                command=command,
-                vision=latest_vision,
+                command=committed_command,
+                vision=vision_state,
+                box_count=latest_vision.get("box_count", 0),
                 distance_cm=latest_distance.get("distance_cm"),
             )
             try:
-                decision_queue.put_nowait(command)
+                decision_queue.put_nowait(committed_command)
             except queue.Full:
                 try:
                     decision_queue.get_nowait()
@@ -72,8 +93,8 @@ def decision_process(
 
             LOGGER.debug(
                 "decision=%s (vision=%s distance=%s)",
-                command,
-                latest_vision,
+                committed_command,
+                vision_state,
                 latest_distance.get("distance_cm"),
             )
             time.sleep(settings.DECISION_POLL_INTERVAL_SEC)
