@@ -86,5 +86,8 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    mp.set_start_method("spawn", force=True)
+    try:
+        mp.set_start_method("fork")
+    except (RuntimeError, ValueError):
+        pass
     main()
