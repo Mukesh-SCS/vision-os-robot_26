@@ -39,7 +39,7 @@ def _spawn_processes(ipc):
             args=(ipc.vision_result_queue, ipc.distance_queue, ipc.decision_queue, ipc.status_queue, ipc.stop_event),
         ),
         mp.Process(name="MotorProcess", target=motor_process, args=(ipc.decision_queue, ipc.status_queue, ipc.stop_event)),
-        mp.Process(name="AudioProcess", target=audio_process, args=(ipc.audio_queue, ipc.stop_event)),
+        mp.Process(name="AudioProcess", target=audio_process, args=(ipc.audio_queue, ipc.status_queue, ipc.stop_event)),
     ]
 
 

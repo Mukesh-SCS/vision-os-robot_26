@@ -16,7 +16,7 @@ LOGGER = get_logger(__name__)
 def _derive_motion_command(vision_state: str, distance_payload: dict) -> str:
     distance = distance_payload.get("distance_cm")
     danger = bool(distance_payload.get("danger"))
-    if danger or (distance is not None and distance < settings.OBSTACLE_THRESHOLD_CM):
+    if danger or (distance is not None and distance <= settings.OBSTACLE_THRESHOLD_CM):
         return "STOP"
     if vision_state == "OBSTACLE_LEFT":
         return "RIGHT"

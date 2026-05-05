@@ -20,6 +20,7 @@ def motor_process(decision_queue: Queue, status_queue: Queue, stop_event: Event)
     last_command = None
     idle_since = None
     last_change_at = 0.0
+    last_status_emit = 0.0
 
     command_map = {
         "FORWARD": driver.forward,
@@ -43,6 +44,17 @@ def motor_process(decision_queue: Queue, status_queue: Queue, stop_event: Event)
             if command and command in command_map and command != last_command:
                 hold_elapsed = now - last_change_at
                 if hold_elapsed >= settings.MOTOR_COMMAND_HOLD_SEC:
+                    if command != "STOP":
+                        # Briefly boost both channels to overcome wheel stiction on starts.
+                        driver.set_side_speed(
+                            settings.MOTOR_START_BOOST_DUTY,
+                            settings.MOTOR_START_BOOST_DUTY,
+                        )
+                        time.sleep(settings.MOTOR_START_BOOST_SEC)
+                        driver.set_side_speed(
+                            settings.MOTOR_DEFAULT_SPEED + settings.MOTOR_LEFT_TRIM,
+                            settings.MOTOR_DEFAULT_SPEED + settings.MOTOR_RIGHT_TRIM,
+                        )
                     command_map[command]()
                     last_command = command
                     last_change_at = now
@@ -58,6 +70,9 @@ def motor_process(decision_queue: Queue, status_queue: Queue, stop_event: Event)
                 last_command = "STOP"
                 last_change_at = now
                 publish_status(status_queue, source="motor", motor_state="STOP")
+            elif (now - last_status_emit) >= 0.5:
+                publish_status(status_queue, source="motor", motor_state=last_command or "IDLE")
+                last_status_emit = now
 
             time.sleep(settings.MOTOR_POLL_INTERVAL_SEC)
     except Exception as exc:
