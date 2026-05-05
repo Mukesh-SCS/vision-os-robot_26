@@ -20,6 +20,7 @@ def motor_process(decision_queue: Queue, status_queue: Queue, stop_event: Event)
     last_command = None
     idle_since = None
     last_change_at = 0.0
+    last_status_emit = 0.0
 
     command_map = {
         "FORWARD": driver.forward,
@@ -58,6 +59,9 @@ def motor_process(decision_queue: Queue, status_queue: Queue, stop_event: Event)
                 last_command = "STOP"
                 last_change_at = now
                 publish_status(status_queue, source="motor", motor_state="STOP")
+            elif (now - last_status_emit) >= 0.5:
+                publish_status(status_queue, source="motor", motor_state=last_command or "IDLE")
+                last_status_emit = now
 
             time.sleep(settings.MOTOR_POLL_INTERVAL_SEC)
     except Exception as exc:

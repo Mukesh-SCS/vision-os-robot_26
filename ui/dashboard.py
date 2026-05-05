@@ -40,6 +40,7 @@ class RobotDashboard:
             "box_count": 0,
             "command": "N/A",
             "motor_state": "N/A",
+            "audio_state": "N/A",
         }
         self.process_state = {name: "RUNNING" for name in process_names}
         self._photo_ref = None
@@ -109,6 +110,7 @@ class RobotDashboard:
         self.box_count_var = tk.StringVar(value="Boxes: 0")
         self.command_var = tk.StringVar(value="Decision Command: N/A")
         self.motor_var = tk.StringVar(value="Motor State: N/A")
+        self.audio_var = tk.StringVar(value="Audio State: N/A")
 
         for var in (
             self.distance_var,
@@ -117,6 +119,7 @@ class RobotDashboard:
             self.box_count_var,
             self.command_var,
             self.motor_var,
+            self.audio_var,
         ):
             ttk.Label(right, textvariable=var).pack(anchor="w")
 
@@ -200,6 +203,7 @@ class RobotDashboard:
         self.box_count_var.set(f"Boxes: {self.last_status['box_count']}")
         self.command_var.set(f"Decision Command: {self.last_status['command']}")
         self.motor_var.set(f"Motor State: {self.last_status['motor_state']}")
+        self.audio_var.set(f"Audio State: {self.last_status['audio_state']}")
 
         if self.stop_event.is_set():
             for key in self.process_state:

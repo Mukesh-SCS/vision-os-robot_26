@@ -17,11 +17,18 @@ LOGGER = get_logger(__name__)
 def ultrasonic_process(distance_queue: Queue, audio_queue: Queue, status_queue: Queue, stop_event: Event) -> None:
     LOGGER.info(process_started_message())
     sensor = UltrasonicSensor()
+    danger_state = False
 
     try:
         while not stop_event.is_set():
             distance = sensor.get_distance()
-            danger = distance is not None and distance < settings.OBSTACLE_THRESHOLD_CM
+            if distance is None:
+                danger = danger_state
+            elif danger_state:
+                danger = distance <= (settings.OBSTACLE_THRESHOLD_CM + settings.OBSTACLE_HYSTERESIS_CM)
+            else:
+                danger = distance <= settings.OBSTACLE_THRESHOLD_CM
+            danger_state = danger
             payload = {"distance_cm": distance, "danger": danger}
 
             try:
@@ -38,7 +45,7 @@ def ultrasonic_process(distance_queue: Queue, audio_queue: Queue, status_queue: 
 
             if danger:
                 try:
-                    audio_queue.put_nowait("BEEP")
+                    audio_queue.put_nowait({"event": "BEEP", "distance_cm": distance})
                 except queue.Full:
                     pass
 

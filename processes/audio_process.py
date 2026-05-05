@@ -38,10 +38,11 @@ def _beep():
     GPIO.output(settings.AUDIO_PIN, GPIO.LOW)
 
 
-def audio_process(audio_queue: Queue, stop_event: Event) -> None:
+def audio_process(audio_queue: Queue, status_queue: Queue, stop_event: Event) -> None:
     LOGGER.info(process_started_message())
     _setup_buzzer()
     last_beep_time = 0.0
+    last_event = "IDLE"
 
     try:
         while not stop_event.is_set():
@@ -52,9 +53,17 @@ def audio_process(audio_queue: Queue, stop_event: Event) -> None:
                 continue
 
             now = time.perf_counter()
-            if msg == "BEEP" and (now - last_beep_time) >= settings.BEEP_COOLDOWN_SEC:
+            event = msg.get("event") if isinstance(msg, dict) else msg
+            if event == "BEEP" and (now - last_beep_time) >= settings.BEEP_COOLDOWN_SEC:
                 _beep()
                 last_beep_time = now
+                last_event = "BEEP"
+            else:
+                last_event = "IDLE"
+            try:
+                status_queue.put_nowait({"source": "audio", "audio_state": last_event})
+            except queue.Full:
+                pass
     except Exception as exc:
         LOGGER.exception("audio_process failure: %s", exc)
         stop_event.set()
