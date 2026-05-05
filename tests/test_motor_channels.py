@@ -24,11 +24,15 @@ def main() -> None:
 
     logger.info("Starting independent motor channel test sequence")
     try:
-        _run_step(driver, logger, "left forward", driver.left_forward)
-        _run_step(driver, logger, "left backward", driver.left_backward)
-        _run_step(driver, logger, "right forward", driver.right_forward)
-        _run_step(driver, logger, "right backward", driver.right_backward)
-        _run_step(driver, logger, "both forward", driver.forward, duration=1.5)
+        while True:
+            _run_step(driver, logger, "left forward", driver.left_forward)
+            _run_step(driver, logger, "left backward", driver.left_backward)
+            _run_step(driver, logger, "right forward", driver.right_forward)
+            _run_step(driver, logger, "right backward", driver.right_backward)
+            _run_step(driver, logger, "both forward", driver.forward, duration=1.5)
+            logger.info("Test sequence completed, restarting...")
+    except KeyboardInterrupt:
+        logger.info("Test interrupted by user")
     finally:
         driver.stop()
         driver.cleanup()
