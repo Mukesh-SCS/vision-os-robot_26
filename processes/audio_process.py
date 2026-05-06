@@ -19,18 +19,27 @@ def audio_process(audio_queue: Queue, status_queue: Queue, stop_event: Event) ->
     audio = Audio(pin=settings.AUDIO_PIN)
     audio.initialize()
     last_beep_time = 0.0
-    last_event = "IDLE"
+    status_event = "IDLE"
+    last_status_emit = 0.0
 
     try:
         while not stop_event.is_set():
+            now = time.perf_counter()
             try:
                 msg = audio_queue.get(timeout=settings.QUEUE_GET_TIMEOUT_SEC)
             except queue.Empty:
-                publish_status(status_queue, source="audio", audio_state="IDLE")
+                # Keep BEEP visible briefly so dashboard updates can observe it.
+                if status_event == "BEEP" and (now - last_beep_time) >= max(
+                    settings.BEEP_DURATION_SEC,
+                    settings.AUDIO_POLL_INTERVAL_SEC * 2,
+                ):
+                    status_event = "IDLE"
+                if (now - last_status_emit) >= 0.2:
+                    publish_status(status_queue, source="audio", audio_state=status_event)
+                    last_status_emit = now
                 time.sleep(settings.AUDIO_POLL_INTERVAL_SEC)
                 continue
 
-            now = time.perf_counter()
             event = msg.get("event") if isinstance(msg, dict) else msg
             if event == "BEEP" and (now - last_beep_time) >= settings.BEEP_COOLDOWN_SEC:
                 audio.tone(
@@ -39,10 +48,9 @@ def audio_process(audio_queue: Queue, status_queue: Queue, stop_event: Event) ->
                     duty=50.0,
                 )
                 last_beep_time = now
-                last_event = "BEEP"
-            else:
-                last_event = "IDLE"
-            publish_status(status_queue, source="audio", audio_state=last_event)
+                status_event = "BEEP"
+                publish_status(status_queue, source="audio", audio_state="BEEP")
+                last_status_emit = now
     except Exception as exc:
         LOGGER.exception("audio_process failure: %s", exc)
         stop_event.set()
